@@ -10,8 +10,22 @@ const PORT = Number(process.env.PORT) || 5001;
 app.use(cors());
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  const startTime = Date.now();
+
+  res.on("finish", () => {
+    const duration = Date.now() - startTime;
+
+    console.log(
+      `${new Date().toISOString()} ${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`
+    );
+  });
+
+  next();
+});
+
 // GET /api/health
-// Checks whether the Express server can connect to MySQL.
 app.get("/api/health", async (req, res) => {
   try {
     await pool.query("SELECT 1");
@@ -30,7 +44,6 @@ app.get("/api/health", async (req, res) => {
 });
 
 // GET /api/properties
-// Supports filtering and pagination.
 app.get("/api/properties", async (req, res) => {
   try {
     const {
@@ -47,7 +60,6 @@ app.get("/api/properties", async (req, res) => {
     const parsedLimit = Number(limit);
     const parsedOffset = Number(offset);
 
-    // Validate pagination
     if (
       !Number.isInteger(parsedLimit) ||
       parsedLimit < 1 ||
@@ -69,7 +81,6 @@ app.get("/api/properties", async (req, res) => {
     const conditions = [];
     const values = [];
 
-    // City filter
     if (city !== undefined) {
       const trimmedCity = String(city).trim();
 
@@ -84,7 +95,6 @@ app.get("/api/properties", async (req, res) => {
       values.push(trimmedCity);
     }
 
-    // ZIP code filter
     if (zipcode !== undefined) {
       const trimmedZipcode = String(zipcode).trim();
 
@@ -99,7 +109,6 @@ app.get("/api/properties", async (req, res) => {
       values.push(trimmedZipcode);
     }
 
-    // Minimum price filter
     let parsedMinPrice;
 
     if (minPrice !== undefined) {
@@ -116,7 +125,6 @@ app.get("/api/properties", async (req, res) => {
       values.push(parsedMinPrice);
     }
 
-    // Maximum price filter
     let parsedMaxPrice;
 
     if (maxPrice !== undefined) {
@@ -144,7 +152,6 @@ app.get("/api/properties", async (req, res) => {
       });
     }
 
-    // Bedrooms filter
     if (beds !== undefined) {
       const parsedBeds = Number(beds);
 
@@ -159,7 +166,6 @@ app.get("/api/properties", async (req, res) => {
       values.push(parsedBeds);
     }
 
-    // Bathrooms filter
     if (baths !== undefined) {
       const parsedBaths = Number(baths);
 
@@ -179,7 +185,6 @@ app.get("/api/properties", async (req, res) => {
         ? ` WHERE ${conditions.join(" AND ")}`
         : "";
 
-    // First query: get total number of matching properties
     const countSql = `
       SELECT COUNT(*) AS total
       FROM rets_property
@@ -188,7 +193,6 @@ app.get("/api/properties", async (req, res) => {
 
     const [countRows] = await pool.query(countSql, values);
 
-    // Second query: get the requested page of results
     const dataSql = `
       SELECT *
       FROM rets_property
@@ -217,7 +221,113 @@ app.get("/api/properties", async (req, res) => {
   }
 });
 
-// Handle routes that do not exist
+// GET /api/properties/:id/openhouses
+// Must be registered before /api/properties/:id.
+app.get("/api/properties/:id/openhouses", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!/^\d{1,32}$/.test(id)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid listing ID",
+      });
+    }
+
+    const [propertyRows] = await pool.query(
+      `
+        SELECT L_ListingID
+        FROM rets_property
+        WHERE L_ListingID = ?
+        LIMIT 1
+      `,
+      [id]
+    );
+
+    if (propertyRows.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Property not found",
+      });
+    }
+
+    const [openHouseRows] = await pool.query(
+      `
+        SELECT
+          id,
+          L_ListingID,
+          L_DisplayId,
+          OpenHouseDate,
+          OH_StartTime,
+          OH_EndTime,
+          OH_StartDate,
+          OH_EndDate,
+          all_data,
+          updated_date,
+          up_date,
+          API_OH_StartDate,
+          API_OH_EndDate
+        FROM rets_openhouse
+        WHERE L_ListingID = ?
+        ORDER BY OpenHouseDate ASC, OH_StartTime ASC
+      `,
+      [id]
+    );
+
+    return res.status(200).json(openHouseRows);
+  } catch (error) {
+    console.error("Open house lookup error:", error);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to retrieve open houses",
+      error: error.message || "Unknown server error",
+    });
+  }
+});
+
+// GET /api/properties/:id
+app.get("/api/properties/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!/^\d{1,32}$/.test(id)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid listing ID",
+      });
+    }
+
+    const [rows] = await pool.query(
+      `
+        SELECT *
+        FROM rets_property
+        WHERE L_ListingID = ?
+        LIMIT 1
+      `,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Property not found",
+      });
+    }
+
+    return res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error("Property detail error:", error);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to retrieve property",
+      error: error.message || "Unknown server error",
+    });
+  }
+});
+
+// Handle unknown routes
 app.use((req, res) => {
   return res.status(404).json({
     status: "error",
