@@ -11,6 +11,11 @@ import Pagination from "../components/Pagination";
 
 const ITEMS_PER_PAGE = 20;
 
+const DEFAULT_SORT = {
+  sortBy: "L_ListingID",
+  sortOrder: "desc",
+};
+
 function getPropertyId(property) {
   return (
     property.L_ListingID ||
@@ -38,10 +43,22 @@ function ListingsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState({});
 
+  const [sortBy, setSortBy] = useState(
+    DEFAULT_SORT.sortBy
+  );
+  const [sortOrder, setSortOrder] = useState(
+    DEFAULT_SORT.sortOrder
+  );
+
   const requestIdRef = useRef(0);
 
   const loadProperties = useCallback(
-    async (searchFilters, page) => {
+    async (
+      searchFilters,
+      page,
+      selectedSortBy,
+      selectedSortOrder
+    ) => {
       const requestId = ++requestIdRef.current;
 
       try {
@@ -50,6 +67,8 @@ function ListingsPage() {
 
         const params = {
           ...searchFilters,
+          sortBy: selectedSortBy,
+          sortOrder: selectedSortOrder,
           limit: ITEMS_PER_PAGE,
           offset: (page - 1) * ITEMS_PER_PAGE,
         };
@@ -86,19 +105,67 @@ function ListingsPage() {
   );
 
   useEffect(() => {
-    loadProperties({}, 1);
+    loadProperties(
+      {},
+      1,
+      DEFAULT_SORT.sortBy,
+      DEFAULT_SORT.sortOrder
+    );
   }, [loadProperties]);
 
   function handleSearch(newFilters) {
     setFilters(newFilters);
     setCurrentPage(1);
-    loadProperties(newFilters, 1);
+
+    loadProperties(
+      newFilters,
+      1,
+      sortBy,
+      sortOrder
+    );
   }
 
   function handleClear() {
     setFilters({});
     setCurrentPage(1);
-    loadProperties({}, 1);
+
+    setSortBy(DEFAULT_SORT.sortBy);
+    setSortOrder(DEFAULT_SORT.sortOrder);
+
+    loadProperties(
+      {},
+      1,
+      DEFAULT_SORT.sortBy,
+      DEFAULT_SORT.sortOrder
+    );
+  }
+
+  function handleSortByChange(event) {
+    const newSortBy = event.target.value;
+
+    setSortBy(newSortBy);
+    setCurrentPage(1);
+
+    loadProperties(
+      filters,
+      1,
+      newSortBy,
+      sortOrder
+    );
+  }
+
+  function handleSortOrderChange(event) {
+    const newSortOrder = event.target.value;
+
+    setSortOrder(newSortOrder);
+    setCurrentPage(1);
+
+    loadProperties(
+      filters,
+      1,
+      sortBy,
+      newSortOrder
+    );
   }
 
   function handlePageChange(page) {
@@ -109,10 +176,17 @@ function ListingsPage() {
       behavior: "smooth",
     });
 
-    loadProperties(filters, page);
+    loadProperties(
+      filters,
+      page,
+      sortBy,
+      sortOrder
+    );
   }
 
-  const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(
+    total / ITEMS_PER_PAGE
+  );
 
   const start =
     total === 0
@@ -148,9 +222,65 @@ function ListingsPage() {
 
       {!loading && !error && (
         <>
-          <p className="property-count">
-            Showing {start}-{end} of {total} properties
-          </p>
+          <div className="listings-toolbar">
+            <p className="property-count">
+              Showing {start}-{end} of {total} properties
+            </p>
+
+            <div className="sorting-controls">
+              <div className="sort-field">
+                <label htmlFor="sortBy">Sort By</label>
+
+                <select
+                  id="sortBy"
+                  value={sortBy}
+                  onChange={handleSortByChange}
+                  disabled={loading}
+                >
+                  <option value="L_ListingID">
+                    Listing ID
+                  </option>
+
+                  <option value="L_SystemPrice">
+                    Price
+                  </option>
+
+                  <option value="LM_Int2_3">
+                    Square Feet
+                  </option>
+
+                  <option value="L_Keyword2">
+                    Bedrooms
+                  </option>
+
+                  <option value="YearBuilt">
+                    Year Built
+                  </option>
+                </select>
+              </div>
+
+              <div className="sort-field">
+                <label htmlFor="sortOrder">
+                  Order
+                </label>
+
+                <select
+                  id="sortOrder"
+                  value={sortOrder}
+                  onChange={handleSortOrderChange}
+                  disabled={loading}
+                >
+                  <option value="asc">
+                    Ascending
+                  </option>
+
+                  <option value="desc">
+                    Descending
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
 
           {properties.length === 0 ? (
             <div className="empty-message">
