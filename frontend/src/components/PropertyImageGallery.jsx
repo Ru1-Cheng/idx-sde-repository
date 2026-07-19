@@ -2,33 +2,41 @@ import { useEffect, useMemo, useState } from "react";
 import { parsePhotos } from "../utils/propertyUtils";
 
 function PropertyImageGallery({ photos, photoData, address }) {
-  const images = useMemo(() => {
-    if (photos) return parsePhotos(photos);
+  const parsedImages = useMemo(() => {
+    if (photos) {
+      return parsePhotos(photos);
+    }
+
     return parsePhotos(photoData);
   }, [photos, photoData]);
 
+  const [images, setImages] = useState(parsedImages);
   const [current, setCurrent] = useState(0);
   const [lightbox, setLightbox] = useState(false);
 
   useEffect(() => {
+    setImages(parsedImages);
     setCurrent(0);
-  }, [images]);
+    setLightbox(false);
+  }, [parsedImages]);
 
   useEffect(() => {
-    if (!lightbox) return;
+    if (!lightbox) {
+      return undefined;
+    }
 
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         setLightbox(false);
       }
 
-      if (event.key === "ArrowRight") {
+      if (event.key === "ArrowRight" && images.length > 1) {
         setCurrent((index) =>
           index === images.length - 1 ? 0 : index + 1
         );
       }
 
-      if (event.key === "ArrowLeft") {
+      if (event.key === "ArrowLeft" && images.length > 1) {
         setCurrent((index) =>
           index === 0 ? images.length - 1 : index - 1
         );
@@ -42,13 +50,29 @@ function PropertyImageGallery({ photos, photoData, address }) {
     };
   }, [lightbox, images.length]);
 
-  if (images.length === 0) {
-    return (
-      <div className="gallery-placeholder">
-        No images available
-      </div>
+  useEffect(() => {
+    if (current >= images.length && images.length > 0) {
+      setCurrent(images.length - 1);
+    }
+  }, [current, images.length]);
+
+  const removeBrokenImage = (brokenIndex) => {
+    setImages((currentImages) =>
+      currentImages.filter((_, index) => index !== brokenIndex)
     );
-  }
+
+    setCurrent((currentIndex) => {
+      if (brokenIndex < currentIndex) {
+        return currentIndex - 1;
+      }
+
+      if (currentIndex >= images.length - 1) {
+        return Math.max(0, images.length - 2);
+      }
+
+      return currentIndex;
+    });
+  };
 
   const previous = () => {
     setCurrent((index) =>
@@ -62,6 +86,14 @@ function PropertyImageGallery({ photos, photoData, address }) {
     );
   };
 
+  if (images.length === 0) {
+    return (
+      <div className="gallery-placeholder">
+        No images available
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="property-gallery">
@@ -70,33 +102,51 @@ function PropertyImageGallery({ photos, photoData, address }) {
           src={images[current]}
           alt={address || "Property"}
           onClick={() => setLightbox(true)}
+          onError={() => removeBrokenImage(current)}
         />
 
-        <div className="gallery-thumbnails">
-          {images.map((image, index) => (
-            <img
-              key={index}
-              src={image}
-              alt={`Thumbnail ${index + 1}`}
-              className={
-                current === index
-                  ? "gallery-thumbnail active"
-                  : "gallery-thumbnail"
-              }
-              onClick={() => setCurrent(index)}
-            />
-          ))}
-        </div>
+        {images.length > 1 && (
+          <div className="gallery-thumbnails">
+            {images.map((image, index) => (
+              <button
+                key={`${image}-${index}`}
+                type="button"
+                className={
+                  current === index
+                    ? "gallery-thumbnail-button active"
+                    : "gallery-thumbnail-button"
+                }
+                onClick={() => setCurrent(index)}
+                aria-label={`View property image ${index + 1}`}
+              >
+                <img
+                  src={image}
+                  alt=""
+                  className="gallery-thumbnail"
+                  onError={() => removeBrokenImage(index)}
+                />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {lightbox && (
+      {lightbox && images.length > 0 && (
         <div
           className="lightbox-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Property image viewer"
           onClick={() => setLightbox(false)}
         >
           <button
+            type="button"
             className="lightbox-close"
-            onClick={() => setLightbox(false)}
+            aria-label="Close image viewer"
+            onClick={(event) => {
+              event.stopPropagation();
+              setLightbox(false);
+            }}
           >
             ✕
           </button>
@@ -104,7 +154,9 @@ function PropertyImageGallery({ photos, photoData, address }) {
           {images.length > 1 && (
             <>
               <button
+                type="button"
                 className="lightbox-left"
+                aria-label="Previous image"
                 onClick={(event) => {
                   event.stopPropagation();
                   previous();
@@ -114,7 +166,9 @@ function PropertyImageGallery({ photos, photoData, address }) {
               </button>
 
               <button
+                type="button"
                 className="lightbox-right"
+                aria-label="Next image"
                 onClick={(event) => {
                   event.stopPropagation();
                   next();
@@ -128,9 +182,17 @@ function PropertyImageGallery({ photos, photoData, address }) {
           <img
             className="lightbox-image"
             src={images[current]}
-            alt={address}
+            alt={address || "Property"}
             onClick={(event) => event.stopPropagation()}
+            onError={() => removeBrokenImage(current)}
           />
+
+          <div
+            className="lightbox-counter"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {current + 1} / {images.length}
+          </div>
         </div>
       )}
     </>

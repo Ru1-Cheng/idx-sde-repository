@@ -620,3 +620,36 @@
   color: #555;
   line-height: 1.5;
 }
+
+.gallery-thumbnail-button {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 2px solid transparent;
+  background: transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.gallery-thumbnail-button.active {
+  border-color: #111;
+}
+
+.gallery-thumbnail-button .gallery-thumbnail {
+  display: block;
+  width: 90px;
+  height: 68px;
+  object-fit: cover;
+}
+
+.lightbox-counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  font-size: 14px;
+}

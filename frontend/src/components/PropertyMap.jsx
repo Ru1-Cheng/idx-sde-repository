@@ -1,50 +1,68 @@
 function PropertyMap({ property }) {
-  const address = [
-    property?.L_Address,
-    property?.L_City,
-    property?.L_State,
-    property?.L_Zip,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const latitude = Number(property?.LMD_MP_Latitude);
+  const longitude = Number(property?.LMD_MP_Longitude);
 
-  if (!address) {
+  const hasValidCoordinates =
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude !== 0 &&
+    longitude !== 0;
+
+  if (!hasValidCoordinates) {
     return <p>Location unavailable.</p>;
   }
 
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
-  const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(
-    address
-  )}`;
+  // ===== DEBUG =====
+  console.log("Google Maps API Key:", apiKey);
+  console.log("Latitude:", latitude);
+  console.log("Longitude:", longitude);
+  // =================
 
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-    address
-  )}`;
+  if (!apiKey) {
+    return <p>Map is unavailable because the Google Maps API key is missing.</p>;
+  }
+
+  const coordinates = `${latitude},${longitude}`;
+
+  const mapUrl =
+    `https://www.google.com/maps/embed/v1/place` +
+    `?key=${encodeURIComponent(apiKey)}` +
+    `&q=${encodeURIComponent(coordinates)}` +
+    `&zoom=15`;
+
+  const directionsUrl =
+    `https://www.google.com/maps/dir/` +
+    `?api=1&destination=${encodeURIComponent(coordinates)}`;
 
   return (
-    <div className="property-map">
-      <iframe
-        title="Property Location"
-        src={mapUrl}
-        width="100%"
-        height="400"
-        loading="lazy"
-        allowFullScreen
-        referrerPolicy="no-referrer-when-downgrade"
-      />
+    <section className="property-map-section">
+      <h2>Location</h2>
 
-      <div className="property-map-actions">
-        <a
-          href={directionsUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="directions-button"
-        >
-          Get Directions
-        </a>
+      <div className="property-map">
+        <iframe
+          title="Property Location"
+          src={mapUrl}
+          width="100%"
+          height="400"
+          loading="lazy"
+          allowFullScreen
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+
+        <div className="property-map-actions">
+          <a
+            href={directionsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="directions-button"
+          >
+            Get Directions
+          </a>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
