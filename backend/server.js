@@ -44,6 +44,7 @@ app.get("/api/health", async (req, res) => {
 });
 
 // GET /api/properties
+// GET /api/properties
 app.get("/api/properties", async (req, res) => {
   try {
     const {
@@ -55,10 +56,39 @@ app.get("/api/properties", async (req, res) => {
       baths,
       limit = "20",
       offset = "0",
+      sortBy = "L_ListingID",
+      sortOrder = "desc",
     } = req.query;
 
     const parsedLimit = Number(limit);
     const parsedOffset = Number(offset);
+
+    // Only allow real column names from rets_property.
+    // Never place an unchecked query parameter directly into ORDER BY.
+    const allowedSortColumns = {
+      L_ListingID: "L_ListingID",
+      L_SystemPrice: "L_SystemPrice",
+      LM_Int2_3: "LM_Int2_3",
+      L_Keyword2: "L_Keyword2",
+      YearBuilt: "YearBuilt",
+    };
+
+    const normalizedSortOrder = String(sortOrder).toLowerCase();
+
+    if (!Object.prototype.hasOwnProperty.call(allowedSortColumns, sortBy)) {
+      return res.status(400).json({
+        status: "error",
+        message:
+          "sortBy must be one of: L_ListingID, L_SystemPrice, LM_Int2_3, L_Keyword2, YearBuilt",
+      });
+    }
+
+    if (!["asc", "desc"].includes(normalizedSortOrder)) {
+      return res.status(400).json({
+        status: "error",
+        message: "sortOrder must be either asc or desc",
+      });
+    }
 
     if (
       !Number.isInteger(parsedLimit) ||
@@ -193,10 +223,14 @@ app.get("/api/properties", async (req, res) => {
 
     const [countRows] = await pool.query(countSql, values);
 
+    const sortColumn = allowedSortColumns[sortBy];
+    const sqlSortOrder = normalizedSortOrder.toUpperCase();
+
     const dataSql = `
       SELECT *
       FROM rets_property
       ${whereClause}
+      ORDER BY ${sortColumn} ${sqlSortOrder}
       LIMIT ?
       OFFSET ?
     `;
@@ -208,6 +242,8 @@ app.get("/api/properties", async (req, res) => {
       total: Number(countRows[0].total),
       limit: parsedLimit,
       offset: parsedOffset,
+      sortBy,
+      sortOrder: normalizedSortOrder,
       results: rows,
     });
   } catch (error) {
