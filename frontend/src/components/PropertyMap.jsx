@@ -14,10 +14,7 @@ function PropertyMap({ property }) {
 
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
-  // ===== DEBUG =====
-  console.log("Google Maps API Key:", apiKey);
-  console.log("Latitude:", latitude);
-  console.log("Longitude:", longitude);
+
   // =================
 
   if (!apiKey) {
