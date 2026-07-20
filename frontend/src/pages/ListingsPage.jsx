@@ -253,8 +253,8 @@ function ListingsPage() {
                     Bedrooms
                   </option>
 
-                  <option value="YearBuilt">
-                    Year Built
+                  <option value="OnMarketDate">
+                     Date Listed
                   </option>
                 </select>
               </div>

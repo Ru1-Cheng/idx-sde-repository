@@ -68,18 +68,17 @@ app.get("/api/properties", async (req, res) => {
     const allowedSortColumns = {
       L_ListingID: "L_ListingID",
       L_SystemPrice: "L_SystemPrice",
+      OnMarketDate: "OnMarketDate",
       LM_Int2_3: "LM_Int2_3",
       L_Keyword2: "L_Keyword2",
-      YearBuilt: "YearBuilt",
-    };
-
+};
     const normalizedSortOrder = String(sortOrder).toLowerCase();
 
     if (!Object.prototype.hasOwnProperty.call(allowedSortColumns, sortBy)) {
       return res.status(400).json({
         status: "error",
         message:
-          "sortBy must be one of: L_ListingID, L_SystemPrice, LM_Int2_3, L_Keyword2, YearBuilt",
+          "sortBy must be one of: L_ListingID, L_SystemPrice, OnMarketDate, LM_Int2_3, L_Keyword2",
       });
     }
 
