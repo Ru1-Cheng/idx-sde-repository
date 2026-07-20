@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import PropertyImageCarousel from "./PropertyImageCarousel";
 import {
@@ -51,22 +52,60 @@ function PropertyCard({ property }) {
           </p>
 
           <p className="property-stats">
-            <span>
-              {formatValue(property.L_Keyword2)} Beds
-            </span>
+            <span>{formatValue(property.L_Keyword2)} Beds</span>
 
-            <span>
-              {formatValue(property.LM_Dec_3)} Baths
-            </span>
+            <span>{formatValue(property.LM_Dec_3)} Baths</span>
 
-            <span>
-              {formatValue(property.LM_Int2_3)} Sqft
-            </span>
+            <span>{formatValue(property.LM_Int2_3)} Sqft</span>
           </p>
         </div>
       </article>
     </Link>
   );
 }
+
+PropertyCard.propTypes = {
+  property: PropTypes.shape({
+    id: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    L_ListingID: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    L_DisplayId: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    L_City: PropTypes.string,
+    L_State: PropTypes.string,
+    L_Zip: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    L_Address: PropTypes.string,
+    L_SystemPrice: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    L_Keyword2: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    LM_Dec_3: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    LM_Int2_3: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    L_Photos: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.arrayOf(PropTypes.string),
+    ]),
+  }).isRequired,
+};
 
 export default PropertyCard;
